@@ -35,7 +35,7 @@ end
 
 YtSearchApi = {
 	GetListByKeyword = function(query)
-		return json.decode(ShellExec(([[node -e "require('youtube-search-api').GetListByKeyword('%s').then(console.log)"]]):format(query)))
+		return json.decode(ShellExec(([[node -e "require('youtube-search-api').GetListByKeyword('%s').then(JSON.stringify).then(console.log)"]]):format(query)))
 	end
 }
 
