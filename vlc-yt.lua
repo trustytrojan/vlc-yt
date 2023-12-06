@@ -33,13 +33,7 @@ function HttpJsonRequest(url)
 	return json.decode(stream:read(stream:getsize()))
 end
 
-YtSearchApi = {
-	GetListByKeyword = function(query)
-		return json.decode(ShellExec(([[node -e "require('youtube-search-api').GetListByKeyword('%s').then(JSON.stringify).then(console.log)"]]):format(query)))
-	end
-}
-
-function ShellExec(command)
+function ExecOutput(command)
 	local handle = io.popen(command)
 	if handle == nil then
 		print("ShellExec: handle is nil")
@@ -50,8 +44,31 @@ function ShellExec(command)
 	return output
 end
 
+YtSearchApi = {
+	SetupNodeEnvironment = function()
+		local _, _, code = os.execute("[ -e userdata/vlc-yt/node_modules ]")
+		if code ~= 0 then
+			os.execute("mkdir -p userdata/vlc-yt && cd userdata/vlc-yt && npm i express youtube-search-api")
+		end
+	end,
+
+	-- expects "yt-search-api.js" to exist in "~/.local/share/vlc/lua/extensions"!
+	StartServer = function()
+		os.execute("cd userdata/vlc-yt && node yt-search-api.js 3000 & sleep 1")
+	end,
+
+	Search = function(query)
+		return HttpJsonRequest("http://localhost:3000/search?q=" .. UrlEncode(query))
+	end,
+
+	NextPage = function()
+		return HttpJsonRequest("http://localhost:3000/nextpage")
+	end
+}
+
 function GetYtAudioStreamUrl(video_id)
-	return ShellExec('yt-dlp -xg ytsearch:' .. video_id)
+	-- `ytsearch:` must be used due to the edge case of `video_id` starting with a `-`
+	return ExecOutput('yt-dlp -xg ytsearch:' .. video_id)
 end
 
 function ShowResults(items)
@@ -59,7 +76,7 @@ function ShowResults(items)
 	for _, item in pairs(items) do
 		Dialog:add_button(
 			item.channelTitle .. " - " .. item.title,
-			function() vlc.playlist.add({ { path = "https://youtu.be/" .. item.id.videoId } }) end
+			function() vlc.playlist.add({ { path = "https://youtu.be/" .. item.id } }) end
 		)
 	end
 end
@@ -67,14 +84,14 @@ end
 function OnSubmitClicked()
 	SpinIcon = Dialog:add_spin_icon(0)
 	SpinIcon:animate()
-	local items = YtSearchApi.GetListByKeyword(SearchInput:get_text())
+	local items = YtSearchApi.Search(SearchInput:get_text())
 	Dialog:del_widget(SpinIcon)
 	HideSearch()
 	ShowResults(items)
 end
 
 function ShowSearch()
-	SearchLabel = Dialog:add_label("Search:")
+	SearchLabel = Dialog:add_label("Search:", 1, 1)
 	SearchInput = Dialog:add_text_input("", 2, 1)
 	SearchButton = Dialog:add_button("Submit", OnSubmitClicked, 1, 2, 2)
 	Dialog:show()
@@ -88,12 +105,16 @@ end
 
 function descriptor()
 	return {
-		title = "YouTube",
+		title = "vlc-yt",
 		author = "trustytrojan"
 	}
 end
 
 function activate()
 	Dialog = vlc.dialog("YouTube Search")
+	local setting_up_label = Dialog:add_label("Setting up...")
+	YtSearchApi.SetupNodeEnvironment()
+	YtSearchApi.StartServer()
+	Dialog:del_widget(setting_up_label)
 	ShowSearch()
 end
