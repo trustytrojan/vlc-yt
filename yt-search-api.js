@@ -21,7 +21,7 @@ const minifySearchResult = (result) => {
 			is_live: item.isLive
 		});
 	}
-	return minResult
+	return minResult;
 };
 
 // stores the current search result returned by `minifySearchResult`
@@ -30,14 +30,10 @@ let currentResult;
 const app = express();
 
 // Expects a `q` query parameter containing the YouTube search query
-app.get("/search", async (req, res) => {
-	res.json((currentResult = minifySearchResult(await GetListByKeyword(req.query.q, false, 5))).items);
-});
+app.get("/search", async (req, res) => res.json((currentResult = minifySearchResult(await GetListByKeyword(req.query.q, false, 5))).items));
 
 // Returns the next page of search results based on the initial `/search` call
-app.get("/nextpage", async (_, res) => {
-	res.json((currentResult = minifySearchResult(await NextPage(currentResult.nextPage, false, 5))).items);
-});
+app.get("/nextpage", async (_, res) => res.json((currentResult = minifySearchResult(await NextPage(currentResult.nextPage, false, 5))).items));
 
 const port = Number.parseInt(argv[2]);
 app.listen(port);
