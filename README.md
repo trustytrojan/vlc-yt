@@ -1,5 +1,5 @@
 # vlc-yt
-An extension for VLC media player that brings YouTube search to VLC.
+A YouTube search extension for VLC media player.
 
 ## Installation
 On Linux, run the following commands in your terminal:
