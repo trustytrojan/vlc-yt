@@ -65,7 +65,7 @@ ShellExec = {
 YtSearchApi = {
 	---@param port integer
 	StartServer = function(port)
-		YtSearchApi.ServerPid = ShellExec.Output("source ~/.local/share/vlc/lua/extensions/vlc-yt/yt-search-api-setup.sh " .. port)
+		YtSearchApi.ServerPid = ShellExec.Output("node ~/.local/share/vlc/lua/extensions/vlc-yt/yt-search-api.js " .. port .. " & echo $!")
 		YtSearchApi.ServerUrl = "http://localhost:" .. port
 	end,
 
