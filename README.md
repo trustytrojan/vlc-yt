@@ -2,13 +2,19 @@
 A YouTube search extension for VLC media player.
 
 ## Installation
+### Linux
 On Linux, run the following commands in your terminal:
 ```sh
 cd ~/.local/share/vlc/lua/extensions
 git clone https://github.com/trustytrojan/vlc-yt
 ln -sf $PWD/vlc-yt/vlc-yt.lua
 ```
-On Windows, `git` is required. If you don't have `git` installed, the fastest way is to run `winget install mingit`. Run the following in Command Prompt or Powershell **with elevated permissions** (to allow the use of `mklink`):
+### Windows
+On Windows, `git` is required. If you don't have `git` installed, the fastest way to grab it is to run:
+```cmd
+winget install mingit
+```
+Run the following in Command Prompt or Powershell **with elevated permissions** (to allow the use of `mklink`):
 ```cmd
 cd %AppData%\vlc\lua\extensions
 git clone https://github.com/trustytrojan/vlc-yt
