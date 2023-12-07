@@ -3,6 +3,7 @@
 		"json",
 		"vlc",
 		"activate",
-		"descriptor"
+		"descriptor",
+		"deactivate"
 	]
 }
