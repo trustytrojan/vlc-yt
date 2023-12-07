@@ -62,27 +62,23 @@ function ShellExecSuccess(command)
 end
 
 YtSearchApi = {
-	Setup = function()
-		if not ShellExecSuccess("[ -e userdata/vlc-yt/node_modules ]") then
-			os.execute("curl | ")
-			os.execute("mkdir -p userdata/vlc-yt && cd userdata/vlc-yt && npm i express youtube-search-api")
-		end
-	end,
-
 	---@param port integer
 	StartServer = function(port)
-		os.execute("cd userdata/vlc-yt && curl https://raw.githubusercontent.com/trustytrojan/vlc-yt/main/yt-search-api.js | node - " .. port .. " &")
-		YtSearchApi.ServerPid = ShellExecOutput("echo $!")
-		YtSearchApi.ServerPort = port
+		YtSearchApi.ServerPid = ShellExecOutput("source yt-search-api-setup.sh " .. port)
+		YtSearchApi.ServerUrl = "http://localhost:" .. port
+	end,
+
+	StopServer = function()
+		os.execute("kill " .. YtSearchApi.ServerPid)
 	end,
 
 	---@param query string
 	Search = function(query)
-		return HttpJsonRequest("http://localhost:" .. YtSearchApi.ServerPort .. "/search?q=" .. UrlEncode(query))
+		return HttpJsonRequest(YtSearchApi.ServerUrl .. "/search?q=" .. UrlEncode(query))
 	end,
 
 	NextPage = function()
-		return HttpJsonRequest("http://localhost:" .. YtSearchApi.ServerPort .. "/nextpage")
+		return HttpJsonRequest(YtSearchApi.ServerUrl .. "/nextpage")
 	end
 }
 
@@ -154,7 +150,6 @@ function descriptor()
 end
 
 function StartExtension()
-	YtSearchApi.Setup()
 	YtSearchApi.StartServer(3000)
 	ShowSearch()
 end
@@ -176,5 +171,5 @@ function activate()
 end
 
 function deactivate()
-	os.execute("kill " .. YtSearchApi.ServerPid)
+	YtSearchApi.StopServer()
 end
