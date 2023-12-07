@@ -12,7 +12,7 @@ ln -sf $PWD/vlc-yt/vlc-yt.lua
 ### Windows
 On Windows, `git` is required. If you don't have `git` installed, the fastest way to grab it is to run:
 ```cmd
-winget install mingit
+winget install Git.MinGit
 ```
 Run the following in Command Prompt or Powershell **with elevated permissions** (to allow the use of `mklink`):
 ```cmd
