@@ -110,15 +110,16 @@ YtSearchApi = {
 }
 
 function YtDlpIsInstalled()
-	return ShellExec.Success("type yt-dlp")
+	return ShellExec.Success("type yt-dlp >/dev/null")
 end
 
 function YoutubeDlIsInstalled()
-	return ShellExec.Success("type youtube-dl")
+	return ShellExec.Success("type youtube-dl >/dev/null")
 end
 
+-- might need a better solution than relying on lsof
 function LsofIsInstalled()
-	return ShellExec.Success("type lsof")
+	return ShellExec.Success("type lsof >/dev/null")
 end
 
 ---@param video_id string
@@ -221,7 +222,7 @@ function activate()
 	Dialog:show()
 
 	if not LsofIsInstalled() then
-		NoticeLabel = Dialog:add_label("lsof is not installed on your system. Please install lsof according to your package manager.")
+		NoticeLabel = Dialog:add_label("lsof is not installed on your system. Please install lsof according to your package manager, then reload the extension or restart VLC.")
 		return
 	end
 
