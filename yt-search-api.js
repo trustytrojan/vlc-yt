@@ -8,17 +8,18 @@ if (argv.length != 3) {
 }
 
 const minifySearchResult = (result) => {
-	/** @type {{ items: SearchResultItem[], nextPage: any }} */
+	/** @type {{ items: any[], nextPage: any }} */
 	const minResult = { items: [], nextPage: result.nextPage };
 	for (const item of result.items) {
+		if (item.type !== "video") continue;
 		minResult.items.push({
 			id: item.id,
-			type: item.type,
-			thumbnail_url: item.thumbnail.thumbnails[0].url,
+			//type: item.type,
+			//thumbnail_url: item.thumbnail.thumbnails[0].url,
 			title: item.title,
 			channel: item.channelTitle,
-			length: item.length.simpleText,
-			is_live: item.isLive
+			//length: item.length.simpleText,
+			//is_live: item.isLive
 		});
 	}
 	return minResult;
@@ -28,6 +29,8 @@ const minifySearchResult = (result) => {
 let currentResult;
 
 const app = express();
+
+app.get("/ping", (_, res) => res.json("pong"));
 
 // Expects a `q` query parameter containing the YouTube search query
 app.get("/search", async (req, res) => res.json((currentResult = minifySearchResult(await GetListByKeyword(req.query.q, false, 5))).items));
