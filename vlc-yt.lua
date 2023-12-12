@@ -51,14 +51,25 @@ ShellExec = {
 	---@return string
 	Output = function(command)
 		local handle, errmsg = io.popen(command)
+
 		if (not handle) or errmsg then
 			errmsg = "ShellExec.Output: " .. errmsg
 			print(errmsg)
 			vlc.msg.err(errmsg)
 			error(errmsg)
 		end
-		local output = handle:read("a"):gsub("\n", "")
+
+		local read_mode
+		if _VERSION == "Lua 5.2" then
+			-- Tested only on 5.2, this may be required on older versions as well
+			read_mode = "*a"
+		else
+			read_mode = "a"
+		end
+
+		local output = handle:read(read_mode):gsub("\n", "")
 		handle:close()
+
 		return output
 	end,
 
@@ -73,9 +84,11 @@ ShellExec = {
 YtSearchApi = {
 	---@param port integer
 	StartServer = function(port)
-		-- kill any existing server on `port` to minimize issues
-		local pid = ShellExec.Output("lsof -t -i:" .. port)
-		if pid ~= "" then os.execute("kill " .. pid) end
+		if LsofIsInstalled() then
+			-- kill any existing server on `port` to minimize issues
+			local pid = ShellExec.Output("lsof -t -i:" .. port)
+			if pid ~= "" then os.execute("kill " .. pid) end
+		end
 
 		YtSearchApi.ServerUrl = "http://localhost:" .. port
 		os.execute("node ~/.local/share/vlc/lua/extensions/vlc-yt/yt-search-api.js " .. port .. " &")
@@ -97,11 +110,15 @@ YtSearchApi = {
 }
 
 function YtDlpIsInstalled()
-	return ShellExec.Success("type yt-dlp >/dev/null")
+	return ShellExec.Success("type yt-dlp")
 end
 
 function YoutubeDlIsInstalled()
-	return ShellExec.Success("type youtube-dl >/dev/null")
+	return ShellExec.Success("type youtube-dl")
+end
+
+function LsofIsInstalled()
+	return ShellExec.Success("type lsof")
 end
 
 ---@param video_id string
@@ -124,16 +141,25 @@ function GetAudioStreamUrl(video_id)
 	error(errmsg)
 end
 
-function HideSearchResults()
+function HideResults()
 	for _, row in pairs(SearchResultRows) do
 		for _, widget in pairs(row) do
 			Dialog:del_widget(widget)
 		end
 	end
+	Dialog:del_widget(NextPageBtn)
+	Dialog:del_widget(ReturnToSearchBtn)
+end
+
+---Return a function that when called, adds the return value of `path_generator` to the VLC playlist.
+---@param path_generator function
+---@return function
+function BindVlcPlaylistAdd(path_generator)
+	return function() vlc.playlist.add({ { path = path_generator() } }) end
 end
 
 ---@param search_results table
-function ShowSearchResults(search_results)
+function ShowResults(search_results)
 	SearchResultRows = {}
 
 	for i, result in pairs(search_results) do
@@ -144,11 +170,19 @@ function ShowSearchResults(search_results)
 		SearchResultRows[i].AudioBtn = Dialog:add_button("Audio", function() vlc.playlist.add({ { path = GetAudioStreamUrl(result.id) } }) end, 3, i)
 	end
 
+	NextPageBtn = Dialog:add_button("Next Page", function()
+		local spin_icon = Dialog:add_spin_icon(0)
+		spin_icon:animate()
+		local search_results_2 = YtSearchApi.NextPage()
+		Dialog:del_widget(spin_icon)
+		HideResults()
+		ShowResults(search_results_2)
+	end, 1, #search_results + 1, 3)
+
 	ReturnToSearchBtn = Dialog:add_button("Return to Search", function()
-		HideSearchResults()
-		Dialog:del_widget(ReturnToSearchBtn)
+		HideResults()
 		ShowSearch()
-	end, 1, #search_results, 3)
+	end, 1, #search_results + 2, 3)
 end
 
 function OnSearchClicked()
@@ -157,7 +191,7 @@ function OnSearchClicked()
 	local search_results = YtSearchApi.Search(SearchInput:get_text())
 	Dialog:del_widget(spin_icon)
 	HideSearch()
-	ShowSearchResults(search_results)
+	ShowResults(search_results)
 end
 
 function ShowSearch()
@@ -185,6 +219,11 @@ end
 function activate()
 	Dialog = vlc.dialog("YouTube")
 	Dialog:show()
+
+	if not LsofIsInstalled() then
+		NoticeLabel = Dialog:add_label("lsof is not installed on your system. Please install lsof according to your package manager.")
+		return
+	end
 
 	if (not YoutubeDlIsInstalled()) and (not YtDlpIsInstalled()) then
 		NoticeLabel = Dialog:add_label("Neither youtube-dl not yt-dlp are on your $PATH. Audio-only streams may not be possible.")
